@@ -25,50 +25,46 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
             pass
 
     def test_get_user_no_data(self):
-        self.assertEqual(self.users_orm.get_user_by_id(123), {'lang_code': 'ru', 'next_quote_time': None, 'settings': '', 'user_id': 123})
+        self.assertEqual(self.users_orm.get_user_by_id(123), {'next_quote_time': None, 'settings': '', 'user_id': 123})
 
     def test_upsert_creates_user(self):
-        self.users_orm.upsert_user({'lang_code': 'en', 'next_quote_time': datetime.datetime(2021, 1, 2, 3, 4, 5), 'settings': 'blah', 'user_id': 123})
+        self.users_orm.upsert_user({'next_quote_time': datetime.datetime(2021, 1, 2, 3, 4, 5), 'settings': 'blah', 'user_id': 123})
         self.assertEqual(self.users_orm.get_user_by_id(123), {
-            'lang_code': 'en',
             'next_quote_time': datetime.datetime(2021, 1, 2, 3, 4, 5).astimezone(tz=datetime.timezone.utc),
             'settings': 'blah',
             'user_id': 123
         })
 
     def test_upsert_creates_user_no_quote_time(self):
-        self.users_orm.upsert_user({'lang_code': 'en', 'next_quote_time': None, 'settings': 'blah', 'user_id': 123})
+        self.users_orm.upsert_user({'next_quote_time': None, 'settings': 'blah', 'user_id': 123})
         self.assertEqual(self.users_orm.get_user_by_id(123), {
-            'lang_code': 'en',
             'next_quote_time': None,
             'settings': 'blah',
             'user_id': 123
         })
 
     def test_upsert_updates_user(self):
-        self.users_orm.upsert_user({'lang_code': 'en', 'next_quote_time': datetime.datetime(2021, 1, 2, 3, 4, 5), 'settings': 'blah', 'user_id': 123})
+        self.users_orm.upsert_user({'next_quote_time': datetime.datetime(2021, 1, 2, 3, 4, 5), 'settings': 'blah', 'user_id': 123})
         user = self.users_orm.get_user_by_id(123)
-        user['lang_code'] = 'ru'
         user['next_quote_time'] = datetime.datetime(2021, 1, 2, 3, 4, 6)
         user['settings'] = 'blahblah'
         self.users_orm.upsert_user(user)
         self.assertEqual(self.users_orm.get_user_by_id(123), {
-            'lang_code': 'ru',
             'next_quote_time': datetime.datetime(2021, 1, 2, 3, 4, 6).astimezone(tz=datetime.timezone.utc),
             'settings': 'blahblah',
             'user_id': 123
         })
 
     def test_get_some_users_for_quote_should_not_return_ineligible_users(self):
-        self.users_orm.upsert_user({'lang_code': 'en', 'next_quote_time': datetime.datetime(2040, 1, 2, 3, 4, 5), 'settings': 'blah', 'user_id': 123})
-        self.users_orm.upsert_user({'lang_code': 'en', 'next_quote_time': None, 'settings': 'blah', 'user_id': 124})
+        self.users_orm.upsert_user({'next_quote_time': datetime.datetime(2040, 1, 2, 3, 4, 5), 'settings': 'blah', 'user_id': 123})
+        self.users_orm.upsert_user({'next_quote_time': None, 'settings': 'blah', 'user_id': 124})
 
         self.assertEqual(self.users_orm.get_some_users_for_quote(1), [])
 
     def test_get_some_users_for_quote_should_return_ilegible_users(self):
         yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-        self.users_orm.upsert_user({'lang_code': 'en', 'next_quote_time': yesterday, 'settings': 'blah', 'user_id': 123})
+        self.users_orm.upsert_user({'next_quote_time': yesterday, 'settings': 'blah', 'user_id': 123})
 
         self.assertEqual(self.users_orm.get_some_users_for_quote(1), [
-            {'lang_code': 'en', 'next_quote_time': yesterday.astimezone(tz=datetime.timezone.utc), 'settings': 'blah', 'user_id': 123}])
+            {'next_quote_time': yesterday.astimezone(tz=datetime.timezone.utc), 'settings': 'blah', 'user_id': 123}])
 

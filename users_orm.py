@@ -11,7 +11,6 @@ def safe_convert_to_datetime(date_str):
 
 class User(TypedDict):
     user_id: int
-    lang_code: Optional[str]
     next_quote_time: Optional[datetime]
     settings: str
 
@@ -28,7 +27,6 @@ class UsersOrm:
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER NOT NULL,
-                lang_code TEXT,
                 next_quote_time TEXT,
                 settings TEXT NOT NULL DEFAULT "{}",
                 PRIMARY KEY (user_id)
@@ -47,7 +45,6 @@ class UsersOrm:
         """
         self.cursor.execute("""SELECT
             user_id,
-            lang_code,
             next_quote_time,
             settings
                 FROM users WHERE user_id = ?""", (user_id,))
@@ -57,7 +54,6 @@ class UsersOrm:
         cutoff_time = datetime.now(tz=timezone.utc).isoformat()
         self.cursor.execute("""SELECT
             user_id,
-            lang_code,
             next_quote_time,
             settings
                 FROM users WHERE next_quote_time < ? LIMIT ?""",
@@ -69,15 +65,13 @@ class UsersOrm:
             # return default user object
             return User(
                 user_id=user_id,
-                lang_code="ru",
                 next_quote_time=None,
                 settings=""
             )
         return User(
             user_id=param[0],
-            lang_code=param[1],
-            next_quote_time=safe_convert_to_datetime(param[2]),
-            settings=param[3]
+            next_quote_time=safe_convert_to_datetime(param[1]),
+            settings=param[2]
         )
     def remove_user(self, user_id: int):
         self.cursor.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
@@ -87,17 +81,14 @@ class UsersOrm:
         self.cursor.execute('''
             INSERT INTO users (
                 user_id, 
-                lang_code,
                 next_quote_time, 
                 settings
-                ) VALUES (?, ?, ?, ?)
+                ) VALUES (?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                lang_code = excluded.lang_code,
                 next_quote_time = excluded.next_quote_time,
                 settings = excluded.settings
         ''', (
             user['user_id'],
-            user['lang_code'],
 
             # SQLite doesn't support timezone-aware datetime objects. Let's keep it UTC
             # for portability (if we need to run the bot on a different server)
