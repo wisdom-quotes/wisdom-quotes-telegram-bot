@@ -3,6 +3,11 @@ import unittest
 from quotes_loader import QuotesLoader
 
 class TestHistory(unittest.IsolatedAsyncioTestCase):
+
+    def test_loading_fine(self):
+        QuotesLoader('quotes')
+        self.assertEqual(0, 0)
+
     def test_get_quotes_loader(self):
         quotes_loader = QuotesLoader('quotes-test')
         self.assertEqual(quotes_loader.categories, {'name': '', 'subcategories': {
