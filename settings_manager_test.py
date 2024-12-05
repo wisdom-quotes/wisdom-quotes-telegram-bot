@@ -10,30 +10,21 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
 
     @time_machine.travel("2021-01-01 1:01:00Z")
     def test_deserialize_empty(self):
-        self.assertEqual(parse_user_settings(""), {'lang_code': 'ru',
-                                                   'categories': [],
-                                                   'quote_times_mins': [61],
-                                                   'resolved_timezone': 'UTC',
-                                                   'user_offset_mins': 0,
+        self.assertEqual(parse_user_settings(""), {'categories': [],
+                                                   'lang_code': 'ru',
+                                                   'quote_times_mins': [60],
+                                                   'resolved_user_timezone': 'UTC',
                                                    'user_timezone': 'UTC',
-                                                   'viewed_quotes': []})
+                                                   'user_timezone_offset_mins': 0,
+                                                   'viewed_quotes_bloomfilter_base64': None})
 
-    def test_deserialize(self):
-        self.assertEqual(parse_user_settings('{"lang_code": "en", "categories": ["cat1", "cat2"], "viewed_quotes": ["quote1", "quote2"], '
-                                            '"user_timezone": "Europe/Moscow", "user_offset_mins": 180, "quote_times_mins": [0, 1, 2], '
-                                            '"resolved_timezone": "Europe/Moscow"}'), {'lang_code': 'en', 'categories': ['cat1', 'cat2'],
-                                                                                  'quote_times_mins': [0, 1, 2],
-                                                                                  'resolved_timezone': 'Europe/Moscow',
-                                                                                  'user_offset_mins': 180,
-                                                                                  'user_timezone': 'Europe/Moscow',
-                                                                                  'viewed_quotes': ['quote1', 'quote2']})
-
-    def test_serialize(self):
-        settings = {'lang_code': 'en', 'categories': ['cat1', 'cat2'],
-         'quote_times_mins': [61],
-         'resolved_timezone': 'UTC',
-         'user_offset_mins': 0,
-         'user_timezone': 'UTC',
-         'viewed_quotes': ['quote1', 'quote2']}
+    def test_deserialise_serialise(self):
+        settings = {'categories': ['cat1', 'cat2'],
+                    'lang_code': 'en',
+                    'quote_times_mins': [61],
+                    'resolved_user_timezone': 'UTC',
+                    'user_timezone': 'UTC',
+                    'user_timezone_offset_mins': 0,
+                    'viewed_quotes_bloomfilter_base64': None}
 
         self.assertEqual(parse_user_settings(serialize_user_settings(settings)), settings)
