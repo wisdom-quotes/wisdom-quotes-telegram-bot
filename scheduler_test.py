@@ -33,3 +33,25 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(next_time,
                              datetime(2021, 1, 3, 15, 30, tzinfo=ZoneInfo(key='Australia/Sydney'))
                              )
+
+    def test_pick_next_quote(self):
+        scheduler = Scheduler("quotes-test")
+
+        bloomfilter = None
+        outcome_ids = {}
+        for iter in range(0, 1000):
+            flat_quote, bloomfilter = scheduler.pick_next_quote(["category1"], bloomfilter)
+            outcome_ids[flat_quote['quote']['id']] = outcome_ids.get(flat_quote['quote']['id'], 0) + 1
+
+        for outcome_id, count in outcome_ids.items():
+            self.assertGreater(count, 160)
+            self.assertLess(count, 170)
+
+        keys = list(outcome_ids.keys())
+        keys.sort()
+        self.assertEqual(keys, ['category1_sub1_quotes1_id1',
+                                  'category1_sub1_quotes1_id2',
+                                  'category1_sub1_quotes2_id1',
+                                  'category1_sub1_quotes2_id2',
+                                  'category1_sub2_quotes1_id1',
+                                  'category1_sub2_quotes1_id2'])

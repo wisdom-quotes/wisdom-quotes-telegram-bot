@@ -55,5 +55,14 @@ class QuotesLoader:
         return category
 
     def filter_by_top_category(self, top_level_categories: list[str]) -> list[FlatQuote]:
-        return [quote for quote in self.flat_quotes if quote['categories_path'][0] in top_level_categories]
+        outcome = []
+        for flat_quote in self.flat_quotes:
+            for category in top_level_categories:
+                if flat_quote['quote']['id'].startswith(category):
+                    outcome.append(flat_quote)
+                    break
+
+        return outcome
+
+
 

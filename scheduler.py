@@ -1,8 +1,11 @@
 import datetime
+import random
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from quotes_loader import QuotesLoader
+from bloomfilter import BloomFilter
+
+from quotes_loader import QuotesLoader, FlatQuote
 
 
 class Scheduler:
@@ -22,3 +25,32 @@ class Scheduler:
             cursor = cursor + datetime.timedelta(days=1)
         return None
 
+
+    def pick_next_quote(self, top_level_categories: list[str], viewed_quotes_bloomfilter_hex: Optional[str]) -> (FlatQuote, str):
+        suitable_quotes: list[FlatQuote] = []
+
+        viewed_filter = BloomFilter(self._get_max_estimate(self._get_max_estimate(len(self.quotes_loader.flat_quotes))), 0.1)
+        if viewed_quotes_bloomfilter_hex is not None:
+            viewed_filter = viewed_filter.loads_from_hex(viewed_quotes_bloomfilter_hex)
+
+        category_quotes = self.quotes_loader.filter_by_top_category(top_level_categories)
+        for flat_quote in category_quotes:
+            if not viewed_filter.might_contain(flat_quote['quote']['id']):
+                suitable_quotes.append(flat_quote)
+
+        if len(suitable_quotes) == 0 and viewed_quotes_bloomfilter_hex is not None:
+            return self.pick_next_quote(top_level_categories, None)
+
+        if len(suitable_quotes) == 0:
+            return None, viewed_filter.dumps_to_hex()
+
+        picked_quote = random.choice(suitable_quotes)
+        viewed_filter.put(picked_quote['quote']['id'])
+        return picked_quote, viewed_filter.dumps_to_hex()
+
+    def _get_max_estimate(self, n: int):
+        approx = 10
+        for iter in range(0, 1000):
+            if n < approx:
+                return approx
+            approx = approx * 10
