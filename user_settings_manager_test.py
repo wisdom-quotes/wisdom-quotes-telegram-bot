@@ -3,7 +3,7 @@ import unittest
 
 import time_machine
 
-from settings_manager import parse_user_settings, serialize_user_settings
+from user_settings_manager import parse_user_settings, serialize_user_settings
 
 
 class TestHistory(unittest.IsolatedAsyncioTestCase):
