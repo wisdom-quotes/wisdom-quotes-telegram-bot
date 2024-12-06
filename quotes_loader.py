@@ -15,7 +15,7 @@ class Category(TypedDict):
     quotes: dict[str, Quote]
 
 class FlatQuote(TypedDict):
-    catetories_path: list[str]
+    categories_path: list[str]
     quote: Quote
 
 
@@ -53,4 +53,7 @@ class QuotesLoader:
                 category['subcategories'][category_name] = {'name': '', 'subcategories': {}, 'quotes': {}}
             category = category['subcategories'][category_name]
         return category
+
+    def filter_by_top_category(self, top_level_categories: list[str]) -> list[FlatQuote]:
+        return [quote for quote in self.flat_quotes if quote['categories_path'][0] in top_level_categories]
 
