@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import TypedDict, Optional
 from zoneinfo import ZoneInfo
 
-from lang_provider import LangProvider
+from lang_provider import LangProvider, Lang
 from quotes_loader import QuotesLoader
 from scheduler import Scheduler
 from user_settings_manager import parse_user_settings, serialize_user_settings
@@ -82,12 +83,34 @@ class BotManager:
 
             self.user_orm.upsert_user(user)
 
+            secs_next_quote = int(user['next_quote_time'].timestamp() - datetime.now().timestamp())
+
             return {
                 'to_chat_id': chat_id,
                 'message': f"<blockquote>{quote['quote']['text']}</blockquote>" +
                            "\n\n" +
-                           f"{quote['quote']['source']}, {quote['quote']['reference']}",
+                           f"{quote['quote']['source']}, {quote['quote']['reference']}" +
+                           "\n\n" +
+                           f"{lang.next_quote}: {self._format_time_minutes(lang, secs_next_quote, True)}",
                 'buttons': [],
                 'menu_commands': [],
                 'image': None
             }
+
+        return None
+
+    def _format_time_minutes(self, lang: Lang, time_secs: int, skip_zeros = False) -> str:
+        days = int(time_secs // 86400)
+        hours = int((time_secs % 86400) // 3600)
+        minutes = int((time_secs % 3600) // 60)
+
+        ret = []
+        if days > 0 or not skip_zeros:
+            ret.append(f"{days}{lang.days_short}")
+        if hours > 0 or not skip_zeros:
+            ret.append(f"{hours}{lang.hours_short}")
+
+        if len(ret) == 0 or minutes > 0:
+            ret.append(f"{minutes}{lang.minutes_short}")
+
+        return " ".join(ret)

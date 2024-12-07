@@ -10,11 +10,24 @@ class Lang:
     button_all: str
     lang_code: str
 
+    next_quote: str
+
+    days_short: str
+    hours_short: str
+    minutes_short: str
+
+
 
 ru = Lang(
     start_command="Выберите категорию цитат",
     button_all="Все",
-    lang_code="ru"
+    lang_code="ru",
+
+    next_quote="Следующая цитата через ",
+
+    days_short = "д",
+    hours_short = "ч",
+    minutes_short = "м"
 )
 
 
