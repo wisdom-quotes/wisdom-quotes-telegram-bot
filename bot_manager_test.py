@@ -1,6 +1,7 @@
 import datetime
 import os
 import unittest
+from datetime import tzinfo
 from unittest import mock
 from zoneinfo import ZoneInfo
 
@@ -63,4 +64,30 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(settings['categories'], ['buddhist'])
         self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 22, 0, 0, 0, tzinfo=ZoneInfo('UTC')))
 
+    @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
+    def test_process_tick_sends_quote(self):
+        with mock.patch('random.choice', lambda x: self.bot_manager.scheduler.quotes_loader.flat_quotes[0]):
+            self.bot_manager.on_data_provided(123, 'category:buddhist')
+
+            self.assertEqual(self.bot_manager.process_tick(), [])
+
+            with time_machine.travel('2022-04-21T23:59:01Z'):
+                self.assertEqual(self.bot_manager.process_tick(), [])
+
+            with time_machine.travel('2022-04-22T00:59:01Z'):
+                self.assertEqual(self.bot_manager.process_tick(), [{'buttons': [],
+                                                                    'image': None,
+                                                                    'menu_commands': [],
+                                                                    'message': '<blockquote>Существа – владельцы своих поступков, наследники '
+                                                                               'своих поступков. Они происходят из своих поступков, связаны со '
+                                                                               'своими поступками, имеют свои поступки своим прибежищем. Именно '
+                                                                               'поступок разделяет людей на низших и высших</blockquote>\n'
+                                                                               '\n'
+                                                                               'Чулакаммавибханга-сутта, МН 135\n'
+                                                                               '\n'
+                                                                               'Следующая цитата через : 23ч',
+                                                                    'to_chat_id': 123}])
+
+            user = self.users_orm.get_user_by_id(123)
+            self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 23, 0, 0, tzinfo=ZoneInfo('utc')))
 

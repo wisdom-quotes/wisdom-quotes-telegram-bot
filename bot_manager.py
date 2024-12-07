@@ -29,7 +29,11 @@ class BotManager:
         self.scheduler = Scheduler(quotes_dir)
 
     def process_tick(self) -> list[Reply]:
-        return []
+        users_eligible_quotes = self.user_orm.get_some_users_for_quote(20)
+        ret = []
+        for user in users_eligible_quotes:
+            ret.append(self._render_next_quote(user['user_id']))
+        return ret
 
     def on_start_command(self, chat_id) -> Reply:
         user = self.user_orm.get_user_by_id(chat_id)
@@ -71,33 +75,39 @@ class BotManager:
                 settings['categories'] = list(top_categories.keys())
             else:
                 settings['categories'] = [category_key]
-
-            quote, new_filter = self.scheduler.pick_next_quote([f'{lang.lang_code}_{cat_key}' for cat_key in settings['categories']],
-                                                               settings['viewed_quotes_bloomfilter_base64'])
-            settings['viewed_quotes_bloomfilter_base64'] = new_filter
-
-            user['next_quote_time'] = self.scheduler.calculate_next_quote_time(settings['quote_times_mins'], ZoneInfo(settings['resolved_user_timezone']))
             user['settings'] = serialize_user_settings(settings)
-
-            print(settings)
-
             self.user_orm.upsert_user(user)
-
-            secs_next_quote = int(user['next_quote_time'].timestamp() - datetime.now().timestamp())
-
-            return {
-                'to_chat_id': chat_id,
-                'message': f"<blockquote>{quote['quote']['text']}</blockquote>" +
-                           "\n\n" +
-                           f"{quote['quote']['source']}, {quote['quote']['reference']}" +
-                           "\n\n" +
-                           f"{lang.next_quote}: {self._format_time_minutes(lang, secs_next_quote, True)}",
-                'buttons': [],
-                'menu_commands': [],
-                'image': None
-            }
+            return self._render_next_quote(chat_id)
 
         return None
+
+    def _render_next_quote(self, chat_id) -> Reply:
+        user = self.user_orm.get_user_by_id(chat_id)
+        settings = parse_user_settings(user['settings'])
+        lang = LangProvider.get_lang_by_code(settings['lang_code'])
+
+        quote, new_filter = self.scheduler.pick_next_quote([f'{lang.lang_code}_{cat_key}' for cat_key in settings['categories']],
+                                                           settings['viewed_quotes_bloomfilter_base64'])
+        settings['viewed_quotes_bloomfilter_base64'] = new_filter
+
+        user['next_quote_time'] = self.scheduler.calculate_next_quote_time(settings['quote_times_mins'], ZoneInfo(settings['resolved_user_timezone']))
+        user['settings'] = serialize_user_settings(settings)
+
+        self.user_orm.upsert_user(user)
+
+        secs_next_quote = int(user['next_quote_time'].timestamp() - datetime.now().timestamp())
+
+        return {
+            'to_chat_id': chat_id,
+            'message': f"<blockquote>{quote['quote']['text']}</blockquote>" +
+                       "\n\n" +
+                       f"{quote['quote']['source']}, {quote['quote']['reference']}" +
+                       "\n\n" +
+                       f"{lang.next_quote}: {self._format_time_minutes(lang, secs_next_quote, True)}",
+            'buttons': [],
+            'menu_commands': [],
+            'image': None
+        }
 
     def _format_time_minutes(self, lang: Lang, time_secs: int, skip_zeros = False) -> str:
         days = int(time_secs // 86400)
