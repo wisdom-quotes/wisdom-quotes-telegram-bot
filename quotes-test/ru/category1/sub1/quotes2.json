@@ -1,13 +1,11 @@
 [
   {
     "text": "quote1",
-    "source": "author1",
     "reference": "reference1",
     "id": "id1"
   },
   {
     "text": "quote2",
-    "source": "author2",
     "reference": "reference2",
     "id": "id2"
   }

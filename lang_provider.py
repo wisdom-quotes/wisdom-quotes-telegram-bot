@@ -20,7 +20,7 @@ class Lang:
 
 ru = Lang(
     start_command="Выберите категорию цитат",
-    button_all="Все",
+    button_all="Любой тематики",
     lang_code="ru",
 
     next_quote="Следующая цитата через ",

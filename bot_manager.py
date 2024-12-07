@@ -107,15 +107,11 @@ class BotManager:
 
         self.user_orm.upsert_user(user)
 
-        secs_next_quote = int(user['next_quote_time'].timestamp() - datetime.now().timestamp())
-
         return {
             'to_chat_id': chat_id,
-            'message': f"<blockquote>{quote['quote']['text']}</blockquote>" +
+            'message': f"<b>{quote['quote']['text']}</b>" +
                        "\n\n" +
-                       f"{quote['quote']['source']}, {quote['quote']['reference']}" +
-                       "\n\n" +
-                       f"{lang.next_quote}: {self._format_time_minutes(lang, secs_next_quote, True)}",
+                       f" – <i>{quote['quote']['reference']}</i>",
             'buttons': [],
             'menu_commands': [],
             'image': None

@@ -5,7 +5,6 @@ from typing import TypedDict
 
 class Quote(TypedDict):
     text: str
-    source: str
     reference: str
     id: str
 
@@ -40,7 +39,7 @@ class QuotesLoader:
                     quotes = json.load(file)
                     for quote in quotes:
                         id = '_'.join(categories_path) + '_' + fname + '_' + quote['id']
-                        quote = Quote(text=quote['text'], source=quote['source'], reference=quote['reference'], id=id)
+                        quote = Quote(text=quote['text'], reference=quote['reference'], id=id)
                         self.flat_quotes.append({'categories_path': categories_path, 'quote': quote})
                         category['quotes'][id] = quote
 
