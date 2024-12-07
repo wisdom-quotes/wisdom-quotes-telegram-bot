@@ -1,7 +1,6 @@
 import datetime
 import os
 import unittest
-from datetime import tzinfo
 from unittest import mock
 from zoneinfo import ZoneInfo
 

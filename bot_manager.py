@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TypedDict, Optional
 from zoneinfo import ZoneInfo
 
@@ -78,6 +78,18 @@ class BotManager:
             user['settings'] = serialize_user_settings(settings)
             self.user_orm.upsert_user(user)
             return self._render_next_quote(chat_id)
+
+        if data.startswith('move:'):
+            move_time_hrs = int(data[len('move:'):])
+            user['next_quote_time'] = user['next_quote_time'] - timedelta(hours=move_time_hrs)
+            self.user_orm.upsert_user(user)
+            return {
+                'to_chat_id': chat_id,
+                'message': f"Next quote time: {user['next_quote_time']}",
+                'buttons': [],
+                'menu_commands': [],
+                'image': None
+            }
 
         return None
 

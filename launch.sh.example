@@ -1,0 +1,17 @@
+#!/bin/bash
+
+export FRONTEND_BASE_URL="https://wisdom-quotes-telegram-bot-dev.netlify.app/miniapp-frontend/index.html"
+export ENV="prod"
+export TOKEN="<CENSORED>"
+
+cd /home/ec2-user/wisdom-quotes-telegram-bot
+source venv/bin/activate
+source .venv/bin/activate
+while echo 1; do
+python main.py
+echo "'main.py' crashed with exit code $?. Restarting..." >&2
+sleep 1
+done
+
+echo "$? - legit stop?"
+goto restart
