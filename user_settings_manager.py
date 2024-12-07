@@ -12,10 +12,10 @@ class UserSettings(TypedDict):
     user_timezone_offset_mins: int
     quote_times_mins: list[int]
 
-def parse_user_settings(settings_json_str: str):
+def parse_user_settings(settings_json_str: str) -> UserSettings:
     now_utc = datetime.datetime.now().astimezone(tz=datetime.timezone.utc)
     minutes = now_utc.hour * 60 + now_utc.minute
-    
+
     settings = json.loads(settings_json_str) if len(settings_json_str) > 0 else {}
     return UserSettings(
         lang_code=settings.get('lang_code', "ru"),

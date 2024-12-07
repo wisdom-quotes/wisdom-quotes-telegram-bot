@@ -1,0 +1,31 @@
+from dataclasses import dataclass
+from typing import Optional
+
+from users_orm import UsersOrm
+
+
+@dataclass
+class Lang:
+    start_command: str
+    button_all: str
+    lang_code: str
+
+
+ru = Lang(
+    start_command="Выберите категорию цитат",
+    button_all="Все",
+    lang_code="ru"
+)
+
+
+class LangProvider:
+
+    @staticmethod
+    def get_available_languages() -> dict[str, Lang]:
+        return {
+            ru.lang_code: ru,
+        }
+
+    @staticmethod
+    def get_lang_by_code(lang_code: str) -> Lang:
+        return LangProvider.get_available_languages()[lang_code]
