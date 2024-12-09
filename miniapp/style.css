@@ -1,0 +1,76 @@
+body {
+    background-color: #000;
+}
+
+.parentContainer {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+}
+
+.displayNone {
+    display: none;
+}
+
+select {
+    font-size: x-large;
+}
+
+a.delete, a.addTime {
+    font-size: x-large;
+    text-decoration: none;
+}
+
+.parentContainer div {
+    text-align: center;
+}
+
+pre {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.error {
+    color: #f00;
+}
+
+a {
+    color: silver;
+}
+
+.parentContainer h1 {
+    text-align: center;
+    margin: auto;
+}
+
+button.actionGreen {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    padding: 10px;
+}
+
+button.actionGreen:hover {
+    background-color: #218838;
+}
+
+button.actionGreen:active {
+    background-color: #1e7e34;
+    transform: scale(0.98);
+}
+
+button.actionGreen:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.5);
+}
