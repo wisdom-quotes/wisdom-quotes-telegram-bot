@@ -141,7 +141,7 @@ class TimeManager {
             if (aList.length === 1) {
                 aList[0].style.visibility = 'hidden';
             } else {
-                aList[1].style.visibility = 'visible';
+                aList[0].style.visibility = 'visible';
             }
         }
 
