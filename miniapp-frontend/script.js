@@ -87,13 +87,12 @@ class DataSubmitComponent {
 
     async submitData(dataProvider) {
         const urlParams = new URLSearchParams(window.location.search);
-        const langCode = urlParams.get('lang_code') || 'en';
         const env = urlParams.get('env') || "prod";
 
         this.dataProvider = dataProvider;
         const data = this.dataProvider();
         this._showData(data);
-        const url = `https://boo.great-site.net/quotes.php?env=${window.ENV}&lang_code=${window.LANG_CODE}&query_id=` + encodeURIComponent(this.queryId) + '&data=' + encodeURIComponent(data)+'&_=' + new Date().getTime();
+        const url = `https://boo.great-site.net/quotes.php?env=${env}&lang_code=${window.LANG_CODE}&query_id=` + encodeURIComponent(this.queryId) + '&data=' + encodeURIComponent(data)+'&_=' + new Date().getTime();
         const corsUrl = url; //'https://corsproxy.io/?' + encodeURIComponent(url);
 
         if (!AbortSignal.timeout) {
