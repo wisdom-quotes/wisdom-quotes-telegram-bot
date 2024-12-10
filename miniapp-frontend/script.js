@@ -136,6 +136,15 @@ class TimeManager {
         const mins = (window.queryParams.get("mins") || ("" + (9*60))).split(",");
         const isMinsUtc = window.queryParams.has("is_mins_utc");
 
+        function syncFirstSelectorVisibility() {
+            const aList = root.querySelectorAll('a');
+            if (aList.length === 1) {
+                aList[0].style.visibility = 'hidden';
+            } else {
+                aList[1].style.visibility = 'visible';
+            }
+        }
+
         for (let min of mins) {
             min = parseInt(min);
             if (isMinsUtc) {
@@ -151,6 +160,7 @@ class TimeManager {
             clone.querySelector('a').addEventListener('click', (e) => {
                 e.preventDefault();
                 clone.remove();
+                syncFirstSelectorVisibility();
             });
             root.appendChild(clone);
             isFirst = false;
@@ -162,8 +172,10 @@ class TimeManager {
             clone.querySelector('a').addEventListener('click', (e) => {
                 e.preventDefault();
                 clone.remove();
+                syncFirstSelectorVisibility();
             });
             root.appendChild(clone);
+            syncFirstSelectorVisibility();
         });
 
         COMPONENTS.setTimeContainer.saveButton.addEventListener('click', (e) => {
@@ -173,6 +185,7 @@ class TimeManager {
             const data = JSON.stringify({times, timeZone, offsetSecs});
             new DataSubmitComponent(window?.Telegram?.WebApp).submitData(() => data);
         });
+        syncFirstSelectorVisibility();
     }
 }
 
