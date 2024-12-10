@@ -16,6 +16,13 @@ class Lang:
     hours_short: str
     minutes_short: str
 
+    menu_settings: str
+
+    settings_command: str
+    button_categories: str
+    button_time: str
+
+    time_updated: str
 
 
 ru = Lang(
@@ -27,7 +34,18 @@ ru = Lang(
 
     days_short = "д",
     hours_short = "ч",
-    minutes_short = "м"
+    minutes_short = "м",
+
+    menu_settings = "Настройки",
+
+    settings_command =('Настройки\n'
+                       '\n'
+                       'Выбранные категории: {categories}\n'
+                       'Время отправки цитат: {time}'),
+    button_categories = 'Изменить категории',
+    button_time = 'Изменить время',
+
+    time_updated="Время цитат обновлено: {time}"
 )
 
 

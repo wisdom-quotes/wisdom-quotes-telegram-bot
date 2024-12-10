@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import time_machine
 
 from bot_manager import BotManager
-from user_settings_manager import parse_user_settings
+from user_settings_manager import parse_user_settings, serialize_user_settings
 from users_orm import UsersOrm
 
 
@@ -38,9 +38,50 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
                                               'url': None},
                                              {'data': 'category:all', 'text': 'Любой тематики', 'url': None}],
                                  'image': None,
-                                 'menu_commands': [],
+                                 'menu_commands': [('settings', 'Настройки')],
                                  'message': 'Выберите категорию цитат',
                                  'to_chat_id': 123})
+
+    @time_machine.travel('2022-04-21T01:00:01Z', tick=False)
+    def test_on_settings_command_for_non_existing_user(self):
+        reply = self.bot_manager.on_settings_command(123)
+        self.assertEqual(reply, {'buttons': [{'data': 'command:start',
+                                              'text': 'Изменить категории',
+                                              'url': None},
+                                             {'text': 'Изменить время',
+                                              'url': 'http://sample?mins=60&is_mins_tz=true&lang=ru&env=test'}],
+                                 'image': None,
+                                 'menu_commands': [],
+                                 'message': 'Настройки\n'
+                                            '\n'
+                                            'Выбранные категории: \n'
+                                            'Время отправки цитат: 01:00 (+0)',
+                                 'to_chat_id': 123})
+
+    @time_machine.travel('2022-04-21T01:00:01Z', tick=False)
+    def test_on_settings_command_for_existing_users(self):
+        self.bot_manager.on_data_provided(123, 'category:buddhist')
+        user = self.users_orm.get_user_by_id(123)
+        settings = parse_user_settings(user['settings'])
+        settings['quote_times_mins']  = [120, 240];
+        settings['user_timezone'] = 'Asia/Novosibirsk'
+        user['settings'] = serialize_user_settings(settings)
+        self.users_orm.upsert_user(user)
+
+        reply = self.bot_manager.on_settings_command(123)
+        self.assertEqual(reply, {'buttons': [{'data': 'command:start',
+                                              'text': 'Изменить категории',
+                                              'url': None},
+                                             {'text': 'Изменить время',
+                                              'url': 'http://sample?mins=120,240&is_mins_tz=true&lang=ru&env=test'}],
+                                 'image': None,
+                                 'menu_commands': [],
+                                 'message': 'Настройки\n'
+                                            '\n'
+                                            'Выбранные категории: Философия Буддизма\n'
+                                            'Время отправки цитат: 02:00, 04:00',
+                                 'to_chat_id': 123})
+
 
     @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
     def test_selection_of_category_renders_quote_from_that_category(self):
@@ -60,6 +101,20 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
         settings = parse_user_settings(user['settings'])
         self.assertEqual(settings['categories'], ['buddhist'])
         self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 22, 0, 0, 0, tzinfo=ZoneInfo('UTC')))
+
+    def test_on_start_command_renders_start(self):
+        reply = self.bot_manager.on_data_provided(123, 'command:start')
+        self.assertEqual(reply, {'buttons': [{'data': 'category:buddhist',
+                                              'text': 'Философия Буддизма',
+                                              'url': None},
+                                             {'data': 'category:stoic',
+                                              'text': 'Философия Стоицизма',
+                                              'url': None},
+                                             {'data': 'category:all', 'text': 'Любой тематики', 'url': None}],
+                                 'image': None,
+                                 'menu_commands': [('settings', 'Настройки')],
+                                 'message': 'Выберите категорию цитат',
+                                 'to_chat_id': 123})
 
     @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
     def test_process_tick_sends_quote(self):
@@ -86,3 +141,17 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
             user = self.users_orm.get_user_by_id(123)
             self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 23, 0, 0, tzinfo=ZoneInfo('utc')))
 
+    @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
+    def test_time_updated(self):
+        ret = self.bot_manager.on_data_provided(123, 'Sending ...{"times":"810,300","timeZone":"Australia/Sydney","offsetSecs":39600}')
+        self.assertEqual(ret, {'buttons': [],
+                               'image': None,
+                               'menu_commands': [],
+                               'message': 'Время цитат обновлено: 05:00, 13:30',
+                               'to_chat_id': 123})
+        user = self.users_orm.get_user_by_id(123)
+        settings = parse_user_settings(user['settings'])
+        self.assertEqual(settings['quote_times_mins'], [300, 810])
+        self.assertEqual(settings['user_timezone'], 'Australia/Sydney')
+        self.assertEqual(settings['resolved_user_timezone'], 'Australia/Sydney')
+        self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 21, 13, 30, tzinfo=ZoneInfo('Australia/Sydney')))

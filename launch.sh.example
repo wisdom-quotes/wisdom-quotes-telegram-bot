@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export FRONTEND_BASE_URL="https://wisdom-quotes-telegram-bot-dev.netlify.app/miniapp-frontend/index.html"
-export ENV="prod"
+export FRONTEND_BASE_URL="https://wisdomquotes-bot-miniapp-frontend.netlify.app/index.html"
+export ENV="test"
 export TOKEN="<CENSORED>"
 
 cd /home/ec2-user/wisdom-quotes-telegram-bot

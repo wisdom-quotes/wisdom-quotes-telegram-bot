@@ -1,3 +1,5 @@
+import json
+import zoneinfo
 from datetime import datetime, timedelta
 from typing import TypedDict, Optional
 from zoneinfo import ZoneInfo
@@ -7,6 +9,37 @@ from quotes_loader import QuotesLoader
 from scheduler import Scheduler
 from user_settings_manager import parse_user_settings, serialize_user_settings
 from users_orm import UsersOrm
+from fuzzywuzzy import fuzz
+
+# Quite expensive operation, use only to sanitize user input
+# utcoffset_secs is a positive offset (that is, Sydney's time is either +10*3600 or +11*3600)
+def detect_timezone(tz_name: str, utcoffset_secs: int):
+    try:
+        return ZoneInfo(tz_name).key
+    except:
+        timezones = list(zoneinfo.available_timezones())
+        timezones_by_offset_diff = {}
+        min_diff = 10 * 3600
+        for tz in timezones:
+            offset = zoneinfo.ZoneInfo(tz).utcoffset(datetime.now()).total_seconds()
+            offset_diff = abs(offset - utcoffset_secs)
+            if offset_diff < min_diff:
+                min_diff = offset_diff
+            if timezones_by_offset_diff.get(offset_diff) is None:
+                timezones_by_offset_diff[offset_diff] = [tz]
+            else:
+                timezones_by_offset_diff[offset_diff].append(tz)
+
+        candidate_tzs = timezones_by_offset_diff[min_diff]
+        found_tz = None
+        found_tz_score = 0
+        for tz in candidate_tzs:
+            score = fuzz.ratio(tz, tz_name)
+            if score > found_tz_score:
+                found_tz = tz
+                found_tz_score = score
+
+        return found_tz
 
 
 class Button(TypedDict):
@@ -49,7 +82,9 @@ class BotManager:
                     'url': None
                 } for categoryKey, category  in self.scheduler.quotes_loader.categories['subcategories'][lang.lang_code]['subcategories'].items()
             ],
-            'menu_commands': [],
+            'menu_commands': [
+                ('settings', lang.menu_settings)
+            ],
             'image': None
         }
         ret['buttons'] += [{
@@ -60,7 +95,41 @@ class BotManager:
         return ret
 
     def on_settings_command(self, chat_id) -> Reply:
-        pass
+        user = self.user_orm.get_user_by_id(chat_id)
+        settings = parse_user_settings(user['settings'])
+        lang = LangProvider.get_lang_by_code(settings['lang_code'])
+
+        return {
+            'to_chat_id': chat_id,
+            'message': lang.settings_command.format(
+                categories=", ".join([self.scheduler.quotes_loader.categories['subcategories'][lang.lang_code]['subcategories'][cat_key]['name'] for cat_key in settings['categories']]),
+                time=(
+                    ", ".join([self._minutes_to_clock_time(mins) for mins in settings['quote_times_mins']])
+                    + (" (+0)" if settings['user_timezone'] == 'UTC' else '')
+                )
+            ),
+            'buttons': [
+                {
+                    'text': lang.button_categories,
+                    'data': 'command:start',
+                    'url': None
+                },
+                {
+                    'text': lang.button_time,
+                    'url': self.frontend_base_url + "?mins=" + str(','.join(map(str, settings['quote_times_mins']))) +
+                           ('&is_mins_tz=true' if settings['resolved_user_timezone'] == 'UTC' else '') +
+                            '&lang=' + settings['lang_code'] +
+                            '&env=' + self.env
+                }
+            ],
+            'menu_commands': [],
+            'image': None
+        }
+
+    def _minutes_to_clock_time(self, time_mins: int) -> str:
+        hours = time_mins // 60
+        minutes = time_mins % 60
+        return f"{hours:02}:{minutes:02}"
 
     def on_data_provided(self, chat_id, data: str) -> Optional[Reply]:
         user = self.user_orm.get_user_by_id(chat_id)
@@ -68,6 +137,13 @@ class BotManager:
         lang = LangProvider.get_lang_by_code(settings['lang_code'])
 
         top_categories = self.scheduler.quotes_loader.categories['subcategories'][lang.lang_code]['subcategories']
+
+        if data.startswith('command:'):
+            command = data[len('command:'):]
+            if command == 'start':
+                return self.on_start_command(chat_id)
+            if command == 'settings':
+                return self.on_settings_command(chat_id)
 
         if data.startswith('category:'):
             category_key = data[len('category:'):]
@@ -91,7 +167,47 @@ class BotManager:
                 'image': None
             }
 
-        return None
+        if "times" in data and "timeZone" in data and "offsetSecs" in data:
+            try:
+                data = json.loads('{' + data.split('{')[1])
+                settings['quote_times_mins'] = list(dict.fromkeys(list(map(int, data['times'].split(',')))))
+                settings['quote_times_mins'].sort()
+                settings['user_timezone'] = data['timeZone']
+                settings['user_timezone_offset_mins'] = data['offsetSecs'] // 60
+                settings['resolved_user_timezone'] = detect_timezone(data['timeZone'], data['offsetSecs'])
+                user['settings'] = serialize_user_settings(settings)
+                user['next_quote_time'] = self.scheduler.calculate_next_quote_time(settings['quote_times_mins'], ZoneInfo(settings['resolved_user_timezone']))
+                self.user_orm.upsert_user(user)
+
+                return {
+                    'to_chat_id': chat_id,
+                    'message': lang.time_updated.format(
+                        time=(
+                                ", ".join([self._minutes_to_clock_time(mins) for mins in settings['quote_times_mins']])
+                                + (" (+0)" if settings['user_timezone'] == 'UTC' else '')
+                        )
+                    ),
+                    'buttons': [],
+                    'menu_commands': [],
+                    'image': None
+                }
+            except Exception as e:
+                print("Error handling payload", e)
+                return {
+                    'to_chat_id': chat_id,
+                    'message': f"Error",
+                    'buttons': [],
+                    'menu_commands': [],
+                    'image': None
+                }
+
+        return {
+            'to_chat_id': chat_id,
+            'message': "Unknown command",
+            'buttons': [],
+            'menu_commands': [],
+            'image': None
+        }
 
     def _render_next_quote(self, chat_id) -> Reply:
         user = self.user_orm.get_user_by_id(chat_id)
