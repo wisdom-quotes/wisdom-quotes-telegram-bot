@@ -142,6 +142,22 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 23, 0, 0, tzinfo=ZoneInfo('utc')))
 
     @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
+    def test_process_tick_updates_next_quote_if_no_categories(self):
+        with mock.patch('random.choice', lambda x: self.bot_manager.scheduler.quotes_loader.flat_quotes[0]):
+            self.bot_manager.on_data_provided(123, 'category:buddhist')
+            user = self.users_orm.get_user_by_id(123)
+            settings = parse_user_settings(user['settings'])
+            settings['categories'] = []
+            user['settings'] = serialize_user_settings(settings)
+            self.users_orm.upsert_user(user)
+
+            with time_machine.travel('2022-04-22T00:59:01Z'):
+                self.assertEqual(self.bot_manager.process_tick(), [])
+
+            user = self.users_orm.get_user_by_id(123)
+            self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 23, 0, 0, tzinfo=ZoneInfo('utc')))
+
+    @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
     def test_time_updated(self):
         ret = self.bot_manager.on_data_provided(123, 'Sending ...{"times":"810,300","timeZone":"Australia/Sydney","offsetSecs":39600}')
         self.assertEqual(ret, {'buttons': [],

@@ -65,7 +65,9 @@ class BotManager:
         users_eligible_quotes = self.user_orm.get_some_users_for_quote(20)
         ret = []
         for user in users_eligible_quotes:
-            ret.append(self._render_next_quote(user['user_id']))
+            reply = self._render_next_quote(user['user_id'])
+            if reply is not None:
+                ret.append(reply)
         return ret
 
     def on_start_command(self, chat_id) -> Reply:
@@ -214,24 +216,30 @@ class BotManager:
         settings = parse_user_settings(user['settings'])
         lang = LangProvider.get_lang_by_code(settings['lang_code'])
 
-        quote, new_filter = self.scheduler.pick_next_quote([f'{lang.lang_code}_{cat_key}' for cat_key in settings['categories']],
-                                                           settings['viewed_quotes_bloomfilter_base64'])
-        settings['viewed_quotes_bloomfilter_base64'] = new_filter
-
         user['next_quote_time'] = self.scheduler.calculate_next_quote_time(settings['quote_times_mins'], ZoneInfo(settings['resolved_user_timezone']))
-        user['settings'] = serialize_user_settings(settings)
 
-        self.user_orm.upsert_user(user)
+        selected_cat_keys = [f'{lang.lang_code}_{cat_key}' for cat_key in settings['categories']]
+        if len(selected_cat_keys) > 0:
+            quote, new_filter = self.scheduler.pick_next_quote(selected_cat_keys,
+                                                               settings['viewed_quotes_bloomfilter_base64'])
+            settings['viewed_quotes_bloomfilter_base64'] = new_filter
+            user['settings'] = serialize_user_settings(settings)
 
-        return {
-            'to_chat_id': chat_id,
-            'message': f"<b>{quote['quote']['text']}</b>" +
-                       "\n\n" +
-                       f" – <i>{quote['quote']['reference']}</i>",
-            'buttons': [],
-            'menu_commands': [],
-            'image': None
-        }
+            self.user_orm.upsert_user(user)
+
+            return {
+                'to_chat_id': chat_id,
+                'message': f"<b>{quote['quote']['text']}</b>" +
+                           "\n\n" +
+                           f" – <i>{quote['quote']['reference']}</i>",
+                'buttons': [],
+                'menu_commands': [],
+                'image': None
+            }
+        else:
+            self.user_orm.upsert_user(user)
+            return None
+
 
     def _format_time_minutes(self, lang: Lang, time_secs: int, skip_zeros = False) -> str:
         days = int(time_secs // 86400)

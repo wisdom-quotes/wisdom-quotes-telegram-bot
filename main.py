@@ -1,6 +1,8 @@
 import asyncio
 import datetime
+import json
 import os
+import sys
 
 import telegram
 from telegram import Bot, WebAppInfo, Update, \
@@ -8,9 +10,45 @@ from telegram import Bot, WebAppInfo, Update, \
 from telegram.ext import CommandHandler, Application, MessageHandler, filters, CallbackQueryHandler
 
 from bot_manager import BotManager, Reply
+from quotes_loader import QuotesLoader
 
 # import pydevd_pycharm
 # pydevd_pycharm.settrace('localhost', port=53509, stdoutToServer=True, stderrToServer=True)
+
+QUOTES_DIR="quotes"
+
+if "insert_categories" in sys.argv:
+
+    def remove_quotes(category):
+        category['quotes'] = {}
+        for subcategory in category['subcategories'].values():
+            remove_quotes(subcategory)
+
+    print("Inserting categories")
+    loader = QuotesLoader(QUOTES_DIR)
+    remove_quotes(loader.categories)
+    categories = json.dumps(loader.categories)
+
+
+    with open('miniapp-frontend/index.html') as f: index_html = f.read()
+
+    index_html_split = index_html.split("/* insert categories */")
+
+    patched = index_html_split[0] + "/* insert categories */\n window.categories = " + categories + ";\n/* insert categories */\n" + index_html_split[2]
+
+    try:
+        os.unlink("miniapp-frontend/index_patched.html")
+    except:
+        pass
+
+    with open("miniapp-frontend/index_patched.html", "w") as text_file:
+        text_file.write(patched)
+
+    os.rename("miniapp-frontend/index_patched.html", "miniapp-frontend/index.html")
+
+    print("All done")
+
+    exit(0)
 
 TOKEN = os.environ.get('TOKEN')
 ENV = os.environ.get('ENV')
@@ -18,7 +56,7 @@ FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL')
 
 bot = Bot(token=TOKEN)
 
-bot_manager = BotManager("wisdom-quotes.db", "quotes", ENV, FRONTEND_BASE_URL)
+bot_manager = BotManager("wisdom-quotes.db", QUOTES_DIR, ENV, FRONTEND_BASE_URL)
 
 async def process_ticks():
     global bot_manager
