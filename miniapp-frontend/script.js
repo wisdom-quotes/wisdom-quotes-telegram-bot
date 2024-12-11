@@ -135,6 +135,9 @@ class DataSubmitComponent {
 
 class TimeManager {
     constructor() {
+        hideEverything();
+        show(COMPONENTS.setTimeContainer.elt);
+
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const offsetSecs = -(new Date().getTimezoneOffset()) * 60;
         console.log(timeZone, offsetSecs);
