@@ -101,10 +101,14 @@ class BotManager:
         settings = parse_user_settings(user['settings'])
         lang = LangProvider.get_lang_by_code(settings['lang_code'])
 
+        categories = ", ".join([self.scheduler.quotes_loader.categories['subcategories'][lang.lang_code]['subcategories'][cat_key]['name'] for cat_key in settings['categories']])
+        if len(categories) == 0:
+            categories = lang.no_categories
+
         return {
             'to_chat_id': chat_id,
             'message': lang.settings_command.format(
-                categories=", ".join([self.scheduler.quotes_loader.categories['subcategories'][lang.lang_code]['subcategories'][cat_key]['name'] for cat_key in settings['categories']]),
+                categories=categories,
                 time=(
                     ", ".join([self._minutes_to_clock_time(mins) for mins in settings['quote_times_mins']])
                     + (" (+0)" if settings['user_timezone'] == 'UTC' else '')
@@ -113,15 +117,18 @@ class BotManager:
             'buttons': [
                 {
                     'text': lang.button_categories,
-                    'data': 'command:start',
-                    'url': None
+                    'url': self.frontend_base_url + "?selected_categories=" + ','.join(settings['categories']) +
+                           '&lang=' + settings['lang_code'] +
+                           '&env=' + self.env,
+                    'data': None
                 },
                 {
                     'text': lang.button_time,
                     'url': self.frontend_base_url + "?mins=" + str(','.join(map(str, settings['quote_times_mins']))) +
                            ('&is_mins_tz=true' if settings['resolved_user_timezone'] == 'UTC' else '') +
                             '&lang=' + settings['lang_code'] +
-                            '&env=' + self.env
+                            '&env=' + self.env,
+                    'data': None
                 }
             ],
             'menu_commands': [],
@@ -156,6 +163,31 @@ class BotManager:
             user['settings'] = serialize_user_settings(settings)
             self.user_orm.upsert_user(user)
             return self._render_next_quote(chat_id)
+
+        if 'categories:' in data:
+            categories = data.split('categories:')[1]
+            settings['categories'] = categories.split(',') if len(categories) > 0 else []
+            user['settings'] = serialize_user_settings(settings)
+            self.user_orm.upsert_user(user)
+            if len(settings['categories']) == 0:
+                return {
+                    'to_chat_id': chat_id,
+                    'message': lang.categories_updated.format(
+                        categories=lang.no_categories
+                    ),
+                    'buttons': [],
+                    'menu_commands': [],
+                    'image': None
+                }
+            return {
+                'to_chat_id': chat_id,
+                'message': lang.categories_updated.format(
+                    categories=", ".join([top_categories[cat_key]['name'] for cat_key in settings['categories']])
+                ),
+                'buttons': [],
+                'menu_commands': [],
+                'image': None
+            }
 
         if data.startswith('move:'):
             move_time_hrs = int(data[len('move:'):])

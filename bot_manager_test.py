@@ -142,6 +142,30 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(user['next_quote_time'], datetime.datetime(2022, 4, 23, 0, 0, tzinfo=ZoneInfo('utc')))
 
     @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
+    def test_can_select_empty_categories(self):
+        res = self.bot_manager.on_data_provided(123, 'categories:')
+        self.assertEqual(res, {'buttons': [],
+                               'image': None,
+                               'menu_commands': [],
+                               'message': 'Категории цитат обновлены: вы не выбрали ни одной категории',
+                               'to_chat_id': 123})
+
+        res = self.bot_manager.on_settings_command(123)
+        self.assertEqual(res, {'buttons': [{'data': None,
+                                            'text': 'Изменить категории',
+                                            'url': 'http://sample?selected_categories=&lang=ru&env=test'},
+                                           {'data': None,
+                                            'text': 'Изменить время',
+                                            'url': 'http://sample?mins=0&is_mins_tz=true&lang=ru&env=test'}],
+                               'image': None,
+                               'menu_commands': [],
+                               'message': 'Настройки\n'
+                                          '\n'
+                                          'Выбранные категории: вы не выбрали ни одной категории\n'
+                                          'Время отправки цитат: 00:00 (+0)',
+                               'to_chat_id': 123})
+
+    @time_machine.travel('2022-04-21T00:00:01Z', tick=False)
     def test_process_tick_updates_next_quote_if_no_categories(self):
         with mock.patch('random.choice', lambda x: self.bot_manager.scheduler.quotes_loader.flat_quotes[0]):
             self.bot_manager.on_data_provided(123, 'category:buddhist')

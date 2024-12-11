@@ -24,6 +24,8 @@ class Lang:
 
     time_updated: str
 
+    categories_updated: str
+    no_categories: str
 
 ru = Lang(
     start_command="Выберите категорию цитат",
@@ -45,7 +47,10 @@ ru = Lang(
     button_categories = 'Изменить категории',
     button_time = 'Изменить время',
 
-    time_updated="Время цитат обновлено: {time}"
+    time_updated="Время цитат обновлено: {time}",
+
+    categories_updated="Категории цитат обновлены: {categories}",
+    no_categories = "вы не выбрали ни одной категории",
 )
 
 
