@@ -17,6 +17,13 @@ const COMPONENTS  = {
         addTime: document.querySelector('#setTimeContainer a.addTime'),
         saveButton: document.querySelector('#setTimeContainer button'),
     },
+
+    selectCategory: {
+        elt: document.getElementById('selectCategory'),
+        h1: document.querySelector('#selectCategory h1'),
+        checkbox: document.querySelector('#selectCategory input[type="checkbox"]'),
+        doneButton: document.querySelector('#selectCategory button'),
+    }
 }
 
 if (queryParams.has('lang')) {
@@ -30,6 +37,9 @@ if (queryParams.has('lang')) {
 
     COMPONENTS.setTimeContainer.h1.textContent = lang.setTime.selectTime;
     COMPONENTS.setTimeContainer.saveButton.textContent = lang.setTime.save;
+
+    COMPONENTS.selectCategory.h1.textContent = lang.selectCategory.h1;
+    COMPONENTS.selectCategory.doneButton.textContent = lang.setTime.save;
 } else {
     throw new Error("lang parameter is not passed");
 }
@@ -37,6 +47,7 @@ if (queryParams.has('lang')) {
 function hideEverything() {
     hide(COMPONENTS.submitContainer.elt);
     hide(COMPONENTS.setTimeContainer.elt);
+    hide(COMPONENTS.selectCategory.elt);
 }
 
 function show(elt) {
@@ -189,6 +200,48 @@ class TimeManager {
     }
 }
 
+class SelectedCategories {
+    constructor() {
+        hideEverything();
+
+        show(COMPONENTS.selectCategory.elt);
+
+        const root = COMPONENTS.selectCategory.checkbox.parentNode.parentNode;
+        const template = COMPONENTS.selectCategory.checkbox.parentNode;
+        template.remove();
+        const topCats = Object.keys(window.categories.subcategories[window.LANG_CODE].subcategories);
+
+        for (let cat of topCats) {
+            const clone = template.cloneNode(true);
+            const checkbox = clone.querySelector('input[type="checkbox"]');
+            checkbox.value = cat;
+            if (window.queryParams.get("selected_categories").split(",").includes(cat)) {
+                checkbox.checked = true;
+            }
+            clone.querySelector('span').textContent = window.categories.subcategories[window.LANG_CODE].subcategories[cat].name;
+            clone.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    checkbox.checked = !checkbox.checked;
+                }
+            });
+            root.appendChild(clone);
+        }
+
+        COMPONENTS.selectCategory.doneButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            const selectedCats = 'categories:' + (Array.from(root.querySelectorAll('input[type="checkbox"]'))
+                .filter((checkbox) => checkbox.checked)
+                .map((checkbox) => checkbox.value).join(','));
+            new DataSubmitComponent(window?.Telegram?.WebApp).submitData(() => selectedCats);
+        });
+    }
+}
+
 // new DataSubmitComponent(window?.Telegram?.WebApp).submitData(() => 'hi');
 
-new TimeManager();
+if (window.queryParams.has("selected_categories")) {
+    new SelectedCategories();
+} else {
+    new TimeManager();
+}

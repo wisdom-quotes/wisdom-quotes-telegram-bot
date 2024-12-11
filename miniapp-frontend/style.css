@@ -74,3 +74,17 @@ button.actionGreen:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.5);
 }
+
+button.actionGreen.disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.checkboxes input {
+    width: 20px;
+    height: 20px;
+}
+
+.checkboxes p {
+    font-size: x-large;
+}
