@@ -38,7 +38,8 @@ class QuotesLoader:
                 with open(filename, 'r') as file:
                     quotes = json.load(file)
                     for quote in quotes:
-                        id = '_'.join(categories_path) + '_' + fname + '_' + quote['id']
+                        id = '_'.join(categories_path) + '_' + fname + '_' + str(quote['id'])
+                        print('...', id)
                         quote = Quote(text=quote['text'], reference=quote['reference'], id=id)
                         self.flat_quotes.append({'categories_path': categories_path, 'quote': quote})
                         category['quotes'][id] = quote

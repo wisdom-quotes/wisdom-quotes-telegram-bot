@@ -5,7 +5,7 @@ from typing import TypedDict, Optional
 from zoneinfo import ZoneInfo
 
 from lang_provider import LangProvider, Lang
-from quotes_loader import QuotesLoader
+from quotes_loader import QuotesLoader, Quote
 from scheduler import Scheduler
 from user_settings_manager import parse_user_settings, serialize_user_settings
 from users_orm import UsersOrm
@@ -201,6 +201,19 @@ class BotManager:
                 'image': None
             }
 
+        if data.startswith('quote:'):
+            quote_id = data[len('quote:'):]
+            for quote in self.scheduler.quotes_loader.flat_quotes:
+                if quote['quote']['id'] == quote_id:
+                    return self._render_quote(chat_id, quote['quote'])
+            return {
+                'to_chat_id': chat_id,
+                'message': "Quote not found",
+                'buttons': [],
+                'menu_commands': [],
+                'image': None
+            }
+
         if "times" in data and "timeZone" in data and "offsetSecs" in data:
             try:
                 data = json.loads('{' + data.split('{')[1])
@@ -243,6 +256,17 @@ class BotManager:
             'image': None
         }
 
+    def _render_quote(self, chat_id, quote: Quote) -> Reply:
+        return {
+            'to_chat_id': chat_id,
+            'message': f"<b>{quote['text']}</b>" +
+                       "\n\n" +
+                       f" – <i>{quote['reference']}</i>",
+            'buttons': [],
+            'menu_commands': [],
+            'image': None
+        }
+
     def _render_next_quote(self, chat_id) -> Reply:
         user = self.user_orm.get_user_by_id(chat_id)
         settings = parse_user_settings(user['settings'])
@@ -259,15 +283,7 @@ class BotManager:
 
             self.user_orm.upsert_user(user)
 
-            return {
-                'to_chat_id': chat_id,
-                'message': f"<b>{quote['quote']['text']}</b>" +
-                           "\n\n" +
-                           f" – <i>{quote['quote']['reference']}</i>",
-                'buttons': [],
-                'menu_commands': [],
-                'image': None
-            }
+            return self._render_quote(chat_id, quote['quote'])
         else:
             self.user_orm.upsert_user(user)
             return None

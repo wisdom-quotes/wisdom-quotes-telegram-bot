@@ -45,16 +45,17 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
     @time_machine.travel('2022-04-21T01:00:01Z', tick=False)
     def test_on_settings_command_for_non_existing_user(self):
         reply = self.bot_manager.on_settings_command(123)
-        self.assertEqual(reply, {'buttons': [{'data': 'command:start',
+        self.assertEqual(reply, {'buttons': [{'data': None,
                                               'text': 'Изменить категории',
-                                              'url': None},
-                                             {'text': 'Изменить время',
+                                              'url': 'http://sample?selected_categories=&lang=ru&env=test'},
+                                             {'data': None,
+                                              'text': 'Изменить время',
                                               'url': 'http://sample?mins=60&is_mins_tz=true&lang=ru&env=test'}],
                                  'image': None,
                                  'menu_commands': [],
                                  'message': 'Настройки\n'
                                             '\n'
-                                            'Выбранные категории: \n'
+                                            'Выбранные категории: вы не выбрали ни одной категории\n'
                                             'Время отправки цитат: 01:00 (+0)',
                                  'to_chat_id': 123})
 
@@ -69,10 +70,11 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
         self.users_orm.upsert_user(user)
 
         reply = self.bot_manager.on_settings_command(123)
-        self.assertEqual(reply, {'buttons': [{'data': 'command:start',
+        self.assertEqual(reply, {'buttons': [{'data': None,
                                               'text': 'Изменить категории',
-                                              'url': None},
-                                             {'text': 'Изменить время',
+                                              'url': 'http://sample?selected_categories=buddhist&lang=ru&env=test'},
+                                             {'data': None,
+                                              'text': 'Изменить время',
                                               'url': 'http://sample?mins=120,240&is_mins_tz=true&lang=ru&env=test'}],
                                  'image': None,
                                  'menu_commands': [],
