@@ -22,6 +22,7 @@ class QuotesLoader:
     def __init__(self, quotes_dir):
         self.categories: Category = {'name': '', 'subcategories': {}, 'quotes': {}}
         self.flat_quotes: list[FlatQuote] = []
+        self.quote_id_to_quote: dict[str, Quote] = {}
 
         for filename in glob.iglob( quotes_dir + '/**/*', recursive=True):
             if not os.path.isfile(filename):
@@ -41,6 +42,7 @@ class QuotesLoader:
                         id = '_'.join(categories_path) + '_' + fname + '_' + str(quote['id'])
                         print('...', id)
                         quote = Quote(text=quote['text'], reference=quote['reference'], id=id)
+                        self.quote_id_to_quote[id] = quote
                         self.flat_quotes.append({'categories_path': categories_path, 'quote': quote})
                         category['quotes'][id] = quote
 

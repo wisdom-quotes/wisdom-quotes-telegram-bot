@@ -76,28 +76,29 @@ def buttons_to_inline_keyboard(buttons):
     reply_markup = InlineKeyboardMarkup(keyboard)
     return reply_markup
 
-async def send_reply(message: Message, ret: Reply):
-    if len(ret['message']) > 0:
-        await message.reply_text(ret['message'], parse_mode='HTML', reply_markup=buttons_to_inline_keyboard(ret['buttons']))
+async def send_reply(message: Message, rets: list[Reply]):
+    for ret in rets:
+        if len(ret['message']) > 0:
+            await message.reply_text(ret['message'], parse_mode='HTML', protect_content=ret['protect_content'], reply_markup=buttons_to_inline_keyboard(ret['buttons']))
 
-    if len(ret['menu_commands']) > 0:
-        await bot.set_my_commands(
-            commands=ret['menu_commands'],
-            scope=telegram.BotCommandScopeChat(
-                chat_id=message.chat.id
+        if len(ret['menu_commands']) > 0:
+            await bot.set_my_commands(
+                commands=ret['menu_commands'],
+                scope=telegram.BotCommandScopeChat(
+                    chat_id=message.chat.id
+                )
             )
-        )
 
-    if 'image' in ret and ret['image'] is not None:
-        await message.reply_photo(photo=ret['image'])
-        if ret['image'].startswith('tmp_'):
-            os.remove(ret['image'])
+        if 'image' in ret and ret['image'] is not None:
+            await message.reply_photo(photo=ret['image'])
+            if ret['image'].startswith('tmp_'):
+                os.remove(ret['image'])
 
 
 async def send_reply_with_bot(ret: Reply):
     global bot
     if len(ret['message']) > 0:
-        await bot.send_message(ret['to_chat_id'], ret['message'], parse_mode='HTML', reply_markup=buttons_to_inline_keyboard(ret['buttons']))
+        await bot.send_message(ret['to_chat_id'], ret['message'], parse_mode='HTML', protect_content=ret['protect_content'], reply_markup=buttons_to_inline_keyboard(ret['buttons']))
 
     if 'image' in ret and ret['image'] is not None:
         if ret['image'].endswith('.txt'):
@@ -118,14 +119,14 @@ async def start_command(update, context):
     message = get_message(update)
     chat_id = message.chat.id
     ret = bot_manager.on_start_command(chat_id)
-    await send_reply(message, ret)
+    await send_reply(message, [ret])
 
 async def settings_command(update: Update, context):
     global bot_manager
     message = get_message(update)
     chat_id = message.chat.id
     ret = bot_manager.on_settings_command(chat_id)
-    await send_reply(message, ret)
+    await send_reply(message, [ret])
 
 async def fallback_command(update: Update, context):
     global bot_manager

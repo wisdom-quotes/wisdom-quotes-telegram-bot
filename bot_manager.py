@@ -5,7 +5,7 @@ from typing import TypedDict, Optional
 from zoneinfo import ZoneInfo
 
 from lang_provider import LangProvider, Lang
-from quotes_loader import QuotesLoader, Quote
+from quotes_loader import Quote
 from scheduler import Scheduler
 from user_settings_manager import parse_user_settings, serialize_user_settings
 from users_orm import UsersOrm
@@ -51,6 +51,7 @@ class Reply(TypedDict):
     to_chat_id: int
     message: str
     buttons: list[Button]
+    protect_content: bool
     menu_commands: list[tuple[str, str]]
     image: Optional[str]
 
@@ -77,6 +78,7 @@ class BotManager:
         ret = {
             'to_chat_id': chat_id,
             'message': lang.start_command,
+            'protect_content': False,
             'buttons': [
                 {
                     'text': category['name'],
@@ -107,6 +109,7 @@ class BotManager:
 
         return {
             'to_chat_id': chat_id,
+            'protect_content': False,
             'message': lang.settings_command.format(
                 categories=categories,
                 time=(
@@ -140,7 +143,7 @@ class BotManager:
         minutes = time_mins % 60
         return f"{hours:02}:{minutes:02}"
 
-    def on_data_provided(self, chat_id, data: str) -> Optional[Reply]:
+    def on_data_provided(self, chat_id, data: str) -> Optional[list[Reply]]:
         user = self.user_orm.get_user_by_id(chat_id)
         settings = parse_user_settings(user['settings'])
         lang = LangProvider.get_lang_by_code(settings['lang_code'])
@@ -150,9 +153,37 @@ class BotManager:
         if data.startswith('command:'):
             command = data[len('command:'):]
             if command == 'start':
-                return self.on_start_command(chat_id)
+                return [self.on_start_command(chat_id)]
             if command == 'settings':
-                return self.on_settings_command(chat_id)
+                return [self.on_settings_command(chat_id)]
+
+        if data.startswith('share:'):
+            quote_id = data[len('share:'):]
+            quote = self.scheduler.quotes_loader.quote_id_to_quote.get(quote_id)
+            if quote is not None:
+                ret = self._render_quote(lang, chat_id, quote)
+                ret['protect_content'] = False
+                ret['message'] += "\n\n" + lang.share_command
+                ret['buttons'] = []
+                return [
+                    {
+                        'to_chat_id': chat_id,
+                        'protect_content': True,
+                        'message': lang.share_instruction,
+                        'buttons': [],
+                        'menu_commands': [],
+                        'image': None
+                    },
+                    ret
+                ]
+            return [{
+                'to_chat_id': chat_id,
+                'protect_content': False,
+                'message': 'Invalid content',
+                'buttons': [],
+                'menu_commands': [],
+                'image': None
+            }]
 
         if data.startswith('category:'):
             category_key = data[len('category:'):]
@@ -162,7 +193,10 @@ class BotManager:
                 settings['categories'] = [category_key]
             user['settings'] = serialize_user_settings(settings)
             self.user_orm.upsert_user(user)
-            return self._render_next_quote(chat_id)
+            ret = self._render_next_quote(chat_id)
+            if ret is not None:
+                return [ret]
+            return []
 
         if 'categories:' in data:
             categories = data.split('categories:')[1]
@@ -170,49 +204,53 @@ class BotManager:
             user['settings'] = serialize_user_settings(settings)
             self.user_orm.upsert_user(user)
             if len(settings['categories']) == 0:
-                return {
+                return [{
                     'to_chat_id': chat_id,
+                    'protect_content': False,
                     'message': lang.categories_updated.format(
                         categories=lang.no_categories
                     ),
                     'buttons': [],
                     'menu_commands': [],
                     'image': None
-                }
-            return {
+                }]
+            return [{
                 'to_chat_id': chat_id,
+                'protect_content': False,
                 'message': lang.categories_updated.format(
                     categories=", ".join([top_categories[cat_key]['name'] for cat_key in settings['categories']])
                 ),
                 'buttons': [],
                 'menu_commands': [],
                 'image': None
-            }
+            }]
 
         if data.startswith('move:'):
             move_time_hrs = int(data[len('move:'):])
             user['next_quote_time'] = user['next_quote_time'] - timedelta(hours=move_time_hrs)
             self.user_orm.upsert_user(user)
-            return {
+            return [{
                 'to_chat_id': chat_id,
+                'protect_content': False,
                 'message': f"Next quote time: {user['next_quote_time']}",
                 'buttons': [],
                 'menu_commands': [],
                 'image': None
-            }
+            }]
 
         if data.startswith('quote:'):
             quote_id = data[len('quote:'):]
-            for quote in self.scheduler.quotes_loader.flat_quotes:
-                if quote['quote']['id'] == quote_id:
-                    return self._render_quote(chat_id, quote['quote'])
-            return {
+            quote = self.scheduler.quotes_loader.quote_id_to_quote.get(quote_id)
+            if quote is not None:
+                return [self._render_quote(lang, chat_id, quote)]
+            return [{
                 'to_chat_id': chat_id,
+                'protect_content': False,
                 'message': "Quote not found",
                 'buttons': [],
                 'menu_commands': [],
                 'image': None
-            }
+            }]
 
         if "times" in data and "timeZone" in data and "offsetSecs" in data:
             try:
@@ -226,8 +264,9 @@ class BotManager:
                 user['next_quote_time'] = self.scheduler.calculate_next_quote_time(settings['quote_times_mins'], ZoneInfo(settings['resolved_user_timezone']))
                 self.user_orm.upsert_user(user)
 
-                return {
+                return [{
                     'to_chat_id': chat_id,
+                    'protect_content': False,
                     'message': lang.time_updated.format(
                         time=(
                                 ", ".join([self._minutes_to_clock_time(mins) for mins in settings['quote_times_mins']])
@@ -237,37 +276,44 @@ class BotManager:
                     'buttons': [],
                     'menu_commands': [],
                     'image': None
-                }
+                }]
             except Exception as e:
                 print("Error handling payload", e)
-                return {
+                return [{
                     'to_chat_id': chat_id,
+                    'protect_content': False,
                     'message': f"Error",
                     'buttons': [],
                     'menu_commands': [],
                     'image': None
-                }
+                }]
 
-        return {
+        return [{
             'to_chat_id': chat_id,
+            'protect_content': False,
             'message': "Unknown command",
             'buttons': [],
             'menu_commands': [],
             'image': None
-        }
+        }]
 
-    def _render_quote(self, chat_id, quote: Quote) -> Reply:
+    def _render_quote(self, lang: Lang, chat_id, quote: Quote) -> Reply:
         return {
             'to_chat_id': chat_id,
+            'protect_content': True,
             'message': f"<b>{quote['text']}</b>" +
                        "\n\n" +
                        f" – <i>{quote['reference']}</i>",
-            'buttons': [],
+            'buttons': [{
+                'text': lang.share_button,
+                'data': "share:" + quote['id'],
+                'url': None
+            }],
             'menu_commands': [],
             'image': None
         }
 
-    def _render_next_quote(self, chat_id) -> Reply:
+    def _render_next_quote(self, chat_id) -> Optional[Reply]:
         user = self.user_orm.get_user_by_id(chat_id)
         settings = parse_user_settings(user['settings'])
         lang = LangProvider.get_lang_by_code(settings['lang_code'])
@@ -283,7 +329,7 @@ class BotManager:
 
             self.user_orm.upsert_user(user)
 
-            return self._render_quote(chat_id, quote['quote'])
+            return self._render_quote(lang, chat_id, quote['quote'])
         else:
             self.user_orm.upsert_user(user)
             return None
