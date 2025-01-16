@@ -27,12 +27,6 @@ class Lang:
     categories_updated: str
     no_categories: str
 
-    share_button: str
-
-    share_command: str
-
-    share_instruction: str
-
 ru = Lang(
     start_command="Выберите категорию цитат",
     button_all="Любой тематики",
@@ -58,9 +52,6 @@ ru = Lang(
     categories_updated="Категории цитат обновлены: {categories}",
     no_categories = "вы не выбрали ни одной категории",
 
-    share_button="Поделиться с другом",
-    share_instruction="↪ Перешлите следующее за этим сообщение вашему другу:",
-    share_command="<a href='https://t.me/wisdomquotes_bot'>Подписаться на ежедневные мудрые цитаты</a>",
 )
 
 

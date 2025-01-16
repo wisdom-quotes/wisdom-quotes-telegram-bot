@@ -11,7 +11,8 @@
 
                     sending: 'Отправка данных...',
                     error: 'Ошибка',
-                    tryAgain: 'Попробовать еще раз'
+                    tryAgain: 'Попробовать еще раз',
+                    errPersists: 'Если ошибка повторяется, скопируйте отправляемые данные и отправьте их боту как сообщение вручную.',
                 },
                 setTime: {
                     selectTime: 'Выберите, во сколько вам присылать цитату:',
@@ -23,7 +24,7 @@
 
                 selectCategory: {
                     h1: 'Выберите категории цитат:'
-                }
+                },
             }
         }
 
@@ -38,7 +39,7 @@
     <div class="parentContainer displayNone" id="submitContainer">
         <div>
             <h1>Sending data...</h1>
-            <pre>datadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadatadata</pre>
+            <textarea></textarea>
         </div>
         <div>
             <p class="error">Error</p>
@@ -46,6 +47,9 @@
         </div>
         <div>
             <p class="tryAgain"><a href="#'">Try again</a></p>
+        </div>
+        <div>
+            <span class="persists">If the error persists, copy the data above and send it to the bot as a message.</span>
         </div>
     </div>
 

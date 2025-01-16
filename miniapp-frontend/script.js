@@ -4,10 +4,11 @@ const COMPONENTS  = {
     submitContainer: {
         elt: document.getElementById('submitContainer'),
         h1: document.querySelector('#submitContainer h1'),
+        textarea: document.querySelectorAll('#submitContainer textarea')[0],
         pre: document.querySelectorAll('#submitContainer pre')[0],
-        pre2: document.querySelectorAll('#submitContainer pre')[1],
         error: document.querySelector('#submitContainer .error'),
         tryAgainLink: document.querySelector('#submitContainer a'),
+        persistsSpan: document.querySelector('#submitContainer span'),
     },
 
     setTimeContainer: {
@@ -34,6 +35,7 @@ if (queryParams.has('lang')) {
     COMPONENTS.submitContainer.h1.textContent = lang.submit.sending;
     COMPONENTS.submitContainer.error.textContent = lang.submit.error;
     COMPONENTS.submitContainer.tryAgainLink.textContent = lang.submit.tryAgain;
+    COMPONENTS.submitContainer.persistsSpan.textContent = lang.submit.errPersists;
 
     COMPONENTS.setTimeContainer.h1.textContent = lang.setTime.selectTime;
     COMPONENTS.setTimeContainer.saveButton.textContent = lang.setTime.save;
@@ -69,26 +71,29 @@ class DataSubmitComponent {
         hideEverything();
 
         show(COMPONENTS.submitContainer.elt);
-        show(COMPONENTS.submitContainer.pre);
+        show(COMPONENTS.submitContainer.textarea);
 
         hide(COMPONENTS.submitContainer.error);
         hide(COMPONENTS.submitContainer.tryAgainLink);
-        hide(COMPONENTS.submitContainer.pre2);
+        hide(COMPONENTS.submitContainer.pre);
+        hide(COMPONENTS.submitContainer.persistsSpan);
 
-        COMPONENTS.submitContainer.pre.textContent = data;
+        COMPONENTS.submitContainer.textarea.value = data;
+        COMPONENTS.submitContainer.textarea.select();
     }
 
     _showError(error) {
         show(COMPONENTS.submitContainer.error);
         show(COMPONENTS.submitContainer.tryAgainLink);
-        show(COMPONENTS.submitContainer.pre2);
-        COMPONENTS.submitContainer.pre2.textContent = error;
+        show(COMPONENTS.submitContainer.pre);
+        show(COMPONENTS.submitContainer.persistsSpan);
+        COMPONENTS.submitContainer.pre.textContent = error;
 
         const tryAgainHandler = (e) => {
             e.preventDefault();
             hide(COMPONENTS.submitContainer.error);
             hide(COMPONENTS.submitContainer.tryAgainLink);
-            hide(COMPONENTS.submitContainer.pre2);
+            hide(COMPONENTS.submitContainer.pre);
             this.submitData(this.dataProvider);
             COMPONENTS.submitContainer.tryAgainLink.removeEventListener("click", tryAgainHandler);
         }

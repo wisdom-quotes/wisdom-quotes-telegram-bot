@@ -157,34 +157,6 @@ class BotManager:
             if command == 'settings':
                 return [self.on_settings_command(chat_id)]
 
-        if data.startswith('share:'):
-            quote_id = data[len('share:'):]
-            quote = self.scheduler.quotes_loader.quote_id_to_quote.get(quote_id)
-            if quote is not None:
-                ret = self._render_quote(lang, chat_id, quote)
-                ret['protect_content'] = False
-                ret['message'] += "\n\n" + lang.share_command
-                ret['buttons'] = []
-                return [
-                    {
-                        'to_chat_id': chat_id,
-                        'protect_content': True,
-                        'message': lang.share_instruction,
-                        'buttons': [],
-                        'menu_commands': [],
-                        'image': None
-                    },
-                    ret
-                ]
-            return [{
-                'to_chat_id': chat_id,
-                'protect_content': False,
-                'message': 'Invalid content',
-                'buttons': [],
-                'menu_commands': [],
-                'image': None
-            }]
-
         if data.startswith('category:'):
             category_key = data[len('category:'):]
             if category_key == 'all':
@@ -298,17 +270,16 @@ class BotManager:
         }]
 
     def _render_quote(self, lang: Lang, chat_id, quote: Quote) -> Reply:
+        reference = quote['reference']
+        if reference.endswith('.'):
+            reference = reference[:-1]
         return {
             'to_chat_id': chat_id,
-            'protect_content': True,
+            'protect_content': False,
             'message': f"<b>{quote['text']}</b>" +
                        "\n\n" +
-                       f" – <i>{quote['reference']}</i>",
-            'buttons': [{
-                'text': lang.share_button,
-                'data': "share:" + quote['id'],
-                'url': None
-            }],
+                       f" - <i>{reference}</i>" + "<a href='https://t.me/wisdomquotes_bot'>.</a>",
+            'buttons': [],
             'menu_commands': [],
             'image': None
         }

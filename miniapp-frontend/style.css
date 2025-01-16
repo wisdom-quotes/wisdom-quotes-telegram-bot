@@ -88,3 +88,7 @@ button.actionGreen.disabled {
 .checkboxes p {
     font-size: x-large;
 }
+
+textarea {
+    width: 100%;
+}

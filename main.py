@@ -62,7 +62,12 @@ async def process_ticks():
     global bot_manager
     replies = bot_manager.process_tick()
     for reply in replies:
-        await send_reply_with_bot(reply)
+        try:
+            await send_reply_with_bot(reply)
+        except Exception as e:
+            if type(e).__name__ == 'Forbidden' and 'bot was blocked by the user' in e.message:
+                print('Deleting blocked user')
+                bot_manager.user_orm.remove_user(reply['to_chat_id'])
 
 def buttons_to_inline_keyboard(buttons):
     if buttons is None or len(buttons) == 0:
@@ -79,6 +84,7 @@ def buttons_to_inline_keyboard(buttons):
 async def send_reply(message: Message, rets: list[Reply]):
     for ret in rets:
         if len(ret['message']) > 0:
+            print("Sending message to " + str(ret['to_chat_id']) + " " + str(datetime.datetime.now().isoformat()))
             await message.reply_text(ret['message'], parse_mode='HTML', protect_content=ret['protect_content'], reply_markup=buttons_to_inline_keyboard(ret['buttons']))
 
         if len(ret['menu_commands']) > 0:
@@ -98,6 +104,7 @@ async def send_reply(message: Message, rets: list[Reply]):
 async def send_reply_with_bot(ret: Reply):
     global bot
     if len(ret['message']) > 0:
+        print("Sending message to " + str(ret['to_chat_id']) + " " + str(datetime.datetime.now().isoformat()))
         await bot.send_message(ret['to_chat_id'], ret['message'], parse_mode='HTML', protect_content=ret['protect_content'], reply_markup=buttons_to_inline_keyboard(ret['buttons']))
 
     if 'image' in ret and ret['image'] is not None:

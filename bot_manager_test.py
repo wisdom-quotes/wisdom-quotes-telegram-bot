@@ -92,9 +92,7 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
     def test_selection_of_category_renders_quote_from_that_category(self):
         with mock.patch('random.choice', lambda x: self.bot_manager.scheduler.quotes_loader.flat_quotes[0]):
             reply = self.bot_manager.on_data_provided(123, 'category:buddhist')
-            self.assertEqual(reply, [{'buttons': [{'data': 'share:ru_buddhist_buddhist01_10',
-                                                   'text': 'Поделиться с другом',
-                                                   'url': None}],
+            self.assertEqual(reply, [{'buttons': [],
                                       'image': None,
                                       'menu_commands': [],
                                       'message': '<b>Существа – владельцы своих поступков, наследники своих '
@@ -102,8 +100,9 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
                                                  'поступками, имеют свои поступки своим прибежищем. Именно '
                                                  'поступок разделяет людей на низших и высших</b>\n'
                                                  '\n'
-                                                 ' – <i>Чулакаммавибханга-сутта. МН 135</i>',
-                                      'protect_content': True,
+                                                 ' - <i>Чулакаммавибханга-сутта. МН 135</i><a '
+                                                 "href='https://t.me/wisdomquotes_bot'>.</a>",
+                                      'protect_content': False,
                                       'to_chat_id': 123}])
         user = self.users_orm.get_user_by_id(123)
         settings = parse_user_settings(user['settings'])
@@ -136,9 +135,7 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(self.bot_manager.process_tick(), [])
 
             with time_machine.travel('2022-04-22T00:59:01Z'):
-                self.assertEqual(self.bot_manager.process_tick(), [{'buttons': [{'data': 'share:ru_buddhist_buddhist01_10',
-                                                                                 'text': 'Поделиться с другом',
-                                                                                 'url': None}],
+                self.assertEqual(self.bot_manager.process_tick(), [{'buttons': [],
                                                                     'image': None,
                                                                     'menu_commands': [],
                                                                     'message': '<b>Существа – владельцы своих поступков, наследники своих '
@@ -146,8 +143,9 @@ class TestHistory(unittest.IsolatedAsyncioTestCase):
                                                                                'поступками, имеют свои поступки своим прибежищем. Именно '
                                                                                'поступок разделяет людей на низших и высших</b>\n'
                                                                                '\n'
-                                                                               ' – <i>Чулакаммавибханга-сутта. МН 135</i>',
-                                                                    'protect_content': True,
+                                                                               ' - <i>Чулакаммавибханга-сутта. МН 135</i><a '
+                                                                               "href='https://t.me/wisdomquotes_bot'>.</a>",
+                                                                    'protect_content': False,
                                                                     'to_chat_id': 123}])
 
             user = self.users_orm.get_user_by_id(123)
